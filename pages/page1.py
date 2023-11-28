@@ -4,6 +4,7 @@ import numpy as np
 import mysql.connector as con
 from streamlit_calendar import calendar
 from streamlit_extras.switch_page_button import switch_page
+from pages.page2 import dashboard
 
 
 timeslots = []
@@ -63,6 +64,13 @@ custom_css="""
 
 calendar = calendar(events=calendar_events, options=calendar_options, custom_css=custom_css, callbacks=['eventClick'])
 st.write(calendar)
+if (calendar != {}):
+    dashboard(calendar)
+
+if (calendar != {}):
+    
+    switch_page("dashboard")
+    
 
 # # # Add a text input widget
 # user_input = st.text_input("Enter your name", "Your Name")
