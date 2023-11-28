@@ -1,1 +1,1 @@
-web: streamlit run UI.py
+web: py -m streamlit run UI.py
