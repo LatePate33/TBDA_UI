@@ -1,0 +1,5 @@
+streamlit
+mysql-connector-python
+st-pages
+streamlit-calendar
+streamlit_extras
