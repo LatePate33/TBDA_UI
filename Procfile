@@ -1,1 +1,1 @@
-streamlit run UI.py
+web: sh setup.sh && streamlit run UI.py
