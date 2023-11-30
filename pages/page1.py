@@ -9,12 +9,7 @@ from pages.page2 import dashboard
 
 timeslots = []
 
-connection = con.connect(
-    host = "apiivm78.etsii.upm.es",
-    user = "TBDA",
-    password = "UPM#2324",
-    database = "sclerosisTBDA"
-)
+
 
 mycur = connection.cursor()
 
@@ -30,18 +25,29 @@ for x in results:
         "title": x[1],
         "start": start,
         "end": end,
+        "color": "#0000FF",
+        "resourceId": "data",
     }
     timeslots.append(dict)    
+
+calendar_resources = [
+    {"id": "data", "whatdoink": "Data", "title": "Data"},
+    {"id": "walk1L", "whatdoink": "Walking", "title": "Walking Left"},
+    {"id": "walk0R", "whatdoink": "Walking", "title": "Walking Right"},
+]
+
 
 calendar_options = {
     "headerToolbar": {
         "left": "today prev,next",
         "center": "title",
-        "right": "timelineDay,dayGridWeek,dayGridMonth",
+        "right": "resourceTimelineDay,dayGridWeek,dayGridMonth",
     },
     "slotMinTime": "00:00:00",
     "slotMaxTime": "24:00:00",
-    "initialView": "dayGridMonth"
+    "initialView": "dayGridMonth",
+    "resources": calendar_resources,
+    "resourceGroupField": "whatdoink",
 }
 calendar_events = {
     "timeZone": 'UTC',
@@ -63,12 +69,11 @@ custom_css="""
 """
 
 calendar = calendar(events=calendar_events, options=calendar_options, custom_css=custom_css, callbacks=['eventClick'])
-st.write(calendar)
+
 if (calendar != {}):
     dashboard(calendar)
 
 if (calendar != {}):
-    
     switch_page("dashboard")
     
 
