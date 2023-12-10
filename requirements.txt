@@ -1,6 +1,7 @@
 streamlit
 mysql-connector-python
 st-pages
-streamlit-calendar
 streamlit_extras
 numpy
+influxdb-client
+influxdb3-python
