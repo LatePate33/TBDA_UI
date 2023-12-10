@@ -1,4 +1,4 @@
-from st_pages import Page, show_pages, add_page_title
+from st_pages import Page, show_pages, add_page_title, hide_pages
 
 # Optional -- adds the title and icon to the current page
 add_page_title()
@@ -12,3 +12,4 @@ show_pages(
     ]
 )
 
+hide_pages(["Dashboard"])
