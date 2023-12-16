@@ -14,10 +14,10 @@ hide_pages(["Dashboard"])
 timeslots = []
 
 connection = con.connect(
-    host="apiivm78.etsii.upm.es",
-    user="TBDA",
-    password="UPM#2324",
-    database="sclerosisTBDA",
+    host=st.secrets["host"],
+    user=st.secrets["username"],
+    password=st.secrets["password"],
+    database=st.secrets["database"],
 )
 
 mycur = connection.cursor()
@@ -43,10 +43,10 @@ for x in results:
 connection.close()
 
 connection = con.connect(
-    host="apiivm78.etsii.upm.es",
-    user="TBDA",
-    password="UPM#2324",
-    database="sclerosisTBDA",
+    host=st.secrets["host"],
+    user=st.secrets["username"],
+    password=st.secrets["password"],
+    database=st.secrets["database"],
 )
 
 mycur = connection.cursor()
@@ -145,9 +145,10 @@ information.write(":large_blue_circle: Data Available")
 information.write(":large_green_circle: Good Walking")
 information.write(":red_circle: Bad Walking")
 information.divider()
-information.write(
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-)
+information.header("Instructions")
+information.write("You have 3 calendar views (month, week, day)")
+information.write("You can move with the arrows (< >) located below")
+information.write("The datapoints are clickable, where data can be displayed")
 
 calendar = calendar(
     events=calendar_events,

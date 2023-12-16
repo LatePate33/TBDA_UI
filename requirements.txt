@@ -5,3 +5,5 @@ streamlit_extras
 numpy
 influxdb-client
 influxdb3-python
+streamlit_javascript
+scipy

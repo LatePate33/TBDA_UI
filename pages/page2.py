@@ -6,11 +6,58 @@ import pandas
 import numpy as np
 import matplotlib.pyplot as plt
 from influxdb_client import InfluxDBClient
+from streamlit_javascript import st_javascript
+from scipy.fftpack import fft, ifft
+from scipy.signal import find_peaks, firwin, lfilter
+from scipy.integrate import trapz
 
 st.set_page_config(layout="wide")
 
 hide_pages(["Dashboard"])
 
+def moving_average(x, w):
+    """calculate moving average with window size w"""
+    return np.convolve(x, np.ones(w), 'valid') / w
+
+def area(x, y, cutoff):
+    idx = x <= cutoff
+    xData = np.array(x[idx])
+    yData = np.array(y[idx])
+    area = trapz(y=yData, x=xData)
+    return area
+
+def picos(df, fs, col):
+    
+    tdt = df
+    X = fft(tdt[col].to_numpy())
+    N = len(X)
+    n = np.arange(N)
+    T = N/fs
+    freq = n/T
+    LN = N // 2
+    # finding picks
+    a = firwin(5, cutoff=1/10, window="hamming")
+    vl = lfilter(a, 1, np.abs(X)[1:(LN)]/max(np.abs(X)[1:(LN)]))
+    peaks = find_peaks(vl, prominence=0.3)[0]
+    # finding areas
+    areas = pandas.DataFrame({'cutoff': [0.5, 0.6, 1., 1.5, 2., 2.5], 'area': np.nan})
+    for idx in areas.index:
+        ctoff = areas.loc[idx, 'cutoff']
+        areas.loc[idx, 'area'] = area(freq[1:LN], vl, ctoff)
+    return {'peaks': pandas.DataFrame({'idx': peaks, 'frq': freq[peaks], 'vals': vl[peaks]}),
+            'raw': pandas.DataFrame({'t': tdt['_time'].to_numpy(), 'sig': tdt[col].to_numpy()}),
+            'rfft': pandas.DataFrame({'freq': freq[1:LN], 'fft': np.abs(X)[1:LN]}),
+            'sfft': pandas.DataFrame({'freq': freq[1:LN], 'fft': vl}),
+            'areas': areas}
+
+def find_dat_pks(tdtF):
+    fs = 1. / tdtF['_time'].diff().median().total_seconds()
+    cols = ['modG', 'modA', 'S0', 'S1', 'S2']
+    Tresd = {}
+    for ics in cols:
+        resd = picos(tdtF, fs, ics)
+        Tresd[ics] = resd
+    return Tresd
 
 def dashboard(parameters):
     title = (parameters.get("eventClick").get("event").get("title"))
@@ -21,14 +68,14 @@ def dashboard(parameters):
     st.session_state['end'] = end
 
 def influxCall(start, end, mac, value):
-    org    = 'UPM'
-    database = 'SSL'
-    retention_policy = 'autogen'
+    org    = st.secrets["org"]
+    database = st.secrets["ifdb"]
+    retention_policy = st.secrets["ifrp"]
     bucket = f'{database}/{retention_policy}'
-    tokenv2 = 'ssIDtGLVLBG94SCPbMlWvHgKGn3uUWECTs4A95I_ACn2NKTsDvLCu2-39EQnaPJFkht3flBAV7rG6kE8x9YQkQ=='
+    tokenv2 = st.secrets["iftoken"]
     start = start.replace(' ','T') + '.000000000Z'
     end = end.replace(' ','T') + '.000000000Z'
-    with InfluxDBClient(url='https://apiivm78.etsii.upm.es:8086',\
+    with InfluxDBClient(url=st.secrets["ifurl"],\
                 token=tokenv2,org=org, timeout= 5000_000) as client:
         query = 'from(bucket:"SSL/autogen")\
                 |> range(start: ' + start + ', stop: ' + end + ')\
@@ -53,7 +100,36 @@ def influxCall(start, end, mac, value):
         client.close()
     return res
 
-def drawLeftie(df_l):
+def drawLeftie(df_l, tresd, cols):
+    if tresd != "null":
+        st.header("Frequencies (Left)")
+        pie = {}
+        for ics in cols:
+            j = 0
+            resd = tresd[ics]
+            freq = resd['rfft']['freq']
+            valr = resd['rfft']['fft']
+            sval = resd['sfft']['fft']
+            # It is supposed that each foot for the same ActID are the next
+            # Several groups of pairs of feets can be requested
+            j = j + 1
+            rj = j % 2
+            if rj == 0:
+                rj = 2
+            if rj == 1:  # First time we start plotting we ask for the framework
+                plt.figure(figsize=(12, 4))
+            plt.subplot(120+rj)
+            plt.plot(freq, valr/max(valr))
+            plt.xlim(0, 5)
+            plt.title(f'{ics}')  # Add the title based on the current ics
+            st.pyplot(plt)
+            plt.close()
+            # if rj == 2:  # When ending the row we ask to show the two graphs
+            #     st.pyplot(plt)
+            #     print('*** Item: {}. ActID: {}'.format(ics))
+            #     plt.close()
+        # for ics in cols:
+        #     print(resd['peaks'])
     st.header("Left")
     st.dataframe(df_l)
     st.header("Presicion (Left)")
@@ -69,7 +145,36 @@ def drawLeftie(df_l):
     magL = df_l[['_time', 'Mx', 'My', 'Mz']]
     st.line_chart(magL, x="_time", y=['Mx', 'My', 'Mz'])
 
-def drawRightie(df_r):
+def drawRightie(df_r, tresd, cols):
+    if tresd != "null":
+        st.header("Frequencies (Right)")
+        pie = {}
+        for ics in cols:
+            j = 0
+            resd = tresd[ics]
+            freq = resd['rfft']['freq']
+            valr = resd['rfft']['fft']
+            sval = resd['sfft']['fft']
+            # It is supposed that each foot for the same ActID are the next
+            # Several groups of pairs of feets can be requested
+            j = j + 1
+            rj = j % 2
+            if rj == 0:
+                rj = 2
+            if rj == 1:  # First time we start plotting we ask for the framework
+                plt.figure(figsize=(12, 4))
+            plt.subplot(120+rj)
+            plt.plot(freq, valr/max(valr))
+            plt.xlim(0, 5)
+            plt.title(f'{ics}')  # Add the title based on the current ics
+            st.pyplot(plt)
+            plt.close()
+            # if rj == 2:  # When ending the row we ask to show the two graphs
+            #     st.pyplot(plt)
+            #     print('*** Item: {}. ActID: {}'.format(ics))
+            #     plt.close()
+        # for ics in cols:
+        #     print(resd['peaks'])
     st.header("Right")
     st.dataframe(df_r)
     st.header("Presicion (Right)")
@@ -132,13 +237,13 @@ if __name__ == "__main__":
                 left_foot, right_foot = st.columns(2)
                 try:
                     with left_foot:
-                        drawLeftie(df_l)
+                        drawLeftie(df_l, "null", "null")
                 except:
                     with left_foot:
                         st.write("**No data**")
                 try:
                     with right_foot:
-                        drawRightie(df_r)
+                        drawRightie(df_r, "null", "null")
                 except:
                     with right_foot:
                         st.write("**No data**")
@@ -154,8 +259,11 @@ if __name__ == "__main__":
             df_r.reset_index(inplace=True)
             df_r['modA'] = (df_r[['Ax','Ay','Az']]**2).sum(axis=1)**0.5
             df_r['modG'] = (df_r[['Gx','Gy','Gz']]**2).sum(axis=1)**0.5
+
+            Tresd = find_dat_pks(df_r)
+            cols = ['modG','modA','S0','S1','S2']
             
-            drawRightie(df_r)
+            drawRightie(df_r, Tresd, cols)
 
         if (title=="L-04"):
             macL = "E0:52:B2:8B:2A:C2"
@@ -168,8 +276,10 @@ if __name__ == "__main__":
             df_l['modA'] = (df_l[['Ax','Ay','Az']]**2).sum(axis=1)**0.5
             df_l['modG'] = (df_l[['Gx','Gy','Gz']]**2).sum(axis=1)**0.5
 
-            
-            drawLeftie(df_l)
+            Tresd = find_dat_pks(df_l)
+            cols = ['modG','modA','S0','S1','S2']
+
+            drawLeftie(df_l, Tresd, cols)
             
     
     
@@ -185,7 +295,10 @@ if __name__ == "__main__":
         st.title(f"From: _{starter}_")
         st.title(f"To: _{ender}_")
 
-        if ((datetime_end - datetime_start) < timedelta(0, 30)):
+        
+        theme = st_javascript("""function darkMode(i){return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)}(1)""")
+    
+        if ((datetime_end - datetime_start) <= timedelta(0, 30)):
 
             selected = datetime.strftime(datetime_start, "%Y-%m-%d %H:%M:%S")
             selected_added = datetime.strftime(datetime_end, "%Y-%m-%d %H:%M:%S")
@@ -205,25 +318,44 @@ if __name__ == "__main__":
             
             timeline.title((f"**{selected}** :arrow_forward: **{selected_added}**"))
             timeline.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+            if timeline.button("Show", type="primary"):
+                drawGraphs(st.session_state.title, selected, selected_added)
 
             ### Custom CSS for the sticky header
-            st.markdown(
-                """
-            <style>
-                div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
-                    position: sticky;
-                    top: 2.875rem;
-                    background-color: white;
-                    z-index: 999;
+            if theme:
+                st.markdown(
+                    """
+                <style>
+                    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+                        position: sticky;
+                        top: 2.875rem;
+                        background-color: #0E1117;
+                        z-index: 999;
+                        
+                    }
                     
-                }
-                
-            </style>
-                """,
-                unsafe_allow_html=True
-            )
+                </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    """
+                <style>
+                    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+                        position: sticky;
+                        top: 2.875rem;
+                        background-color: white;
+                        z-index: 999;
+                        
+                    }
+                    
+                </style>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            drawGraphs(st.session_state.title, selected, selected_added)
+            #drawGraphs(st.session_state.title, selected, selected_added)
 
     else:
         data_load_state = st.text('Something went wrong...')
