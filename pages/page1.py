@@ -51,16 +51,20 @@ connection = con.connect(
 
 mycur = connection.cursor()
 
-mycur.execute("SELECT * FROM `steps-G01`")
+mycur.execute("SELECT * FROM `final-G01`")
 
 results = mycur.fetchall()
 
 for x in results:
     start = x[3].strftime("%Y-%m-%dT%H:%M:%S")
     end = x[4].strftime("%Y-%m-%dT%H:%M:%S")
+    WorL = x[5]
     RorL = x[2]
 
-    bordercolor = "#00FF00"
+    if (WorL == 1):
+        bordercolor = "#00FF00"
+    else: 
+        bordercolor = "#FF0000"
 
     if RorL == "C9:7B:84:76:32:14":
         title = "R-04"
