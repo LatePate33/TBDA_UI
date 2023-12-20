@@ -24,3 +24,9 @@ Lauri Tirkkonen (FI)
 
 ## Link
 https://tbda2023g1.streamlit.app/
+
+Might not be running for various reasons
+
+UPM database issue
+
+Streamlit issue
